@@ -5,6 +5,8 @@ import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
+import com.liskovsoft.smartyoutubetv2.tv.BuildConfig;
+import dev.migmags.aifilter.SlopRules;
 import com.liskovsoft.sharedutils.misc.WeakHashSet;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
@@ -18,6 +20,8 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
     private final List<Video> mVideoItems = new ArrayList<>();
     // CopyOnWriteArrayList to fix Fatal Exception: java.lang.ArrayIndexOutOfBoundsException: length=10; index=-1
     private final List<VideoGroup> mVideoGroups = new CopyOnWriteArrayList<>(); // keep groups from being garbage collected
+    private static final SlopRules AI_FILTER = new SlopRules();
+    private static final boolean AI_FILTER_ENABLED = "stslop".equals(BuildConfig.FLAVOR);
     private static final int TYPE_ADD = 0;
     private static final int TYPE_REMOVE = 1;
     private static final int TYPE_SYNC = 2;
@@ -94,13 +98,24 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
         add(VideoGroup.from(videos));
     }
 
+    private static List<Video> filterForDisplay(List<Video> videos) {
+        if (!AI_FILTER_ENABLED) return videos;
+        List<Video> result = new ArrayList<>();
+        for (Video video : videos) {
+            if (video != null && !AI_FILTER.shouldHide(video.getTitle(), video.getAuthor(), false)) {
+                result.add(video);
+            }
+        }
+        return result;
+    }
+
     private void prepend(VideoGroup group) {
         int begin = mVideoItems.size();
 
         if (mVideoGroups.contains(group)) {
-            mVideoItems.addAll(0, group.getVideos().subList(begin, group.getVideos().size()));
+            mVideoItems.addAll(0, filterForDisplay(group.getVideos().subList(Math.min(begin, group.getVideos().size()), group.getVideos().size())));
         } else {
-            mVideoItems.addAll(0, group.getVideos());
+            mVideoItems.addAll(0, filterForDisplay(group.getVideos()));
             mVideoGroups.add(0, group);
         }
 
@@ -114,12 +129,12 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
         if (mVideoGroups.contains(group)) {
             int end = group.getVideos().size();
             if (begin > end) {
-                mVideoItems.addAll(group.getVideos());
+                mVideoItems.addAll(filterForDisplay(group.getVideos()));
             } else {
-                mVideoItems.addAll(group.getVideos().subList(begin, end));
+                mVideoItems.addAll(filterForDisplay(group.getVideos().subList(begin, end)));
             }
         } else {
-            mVideoItems.addAll(group.getVideos());
+            mVideoItems.addAll(filterForDisplay(group.getVideos()));
             mVideoGroups.add(group);
         }
 
