@@ -26,6 +26,11 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      - name: Run AI filter unit tests
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon testStslopDebugUnitTest
+
       - name: Build separate prototype APK
         run: |
           chmod +x ./gradlew
