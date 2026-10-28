@@ -1,7 +1,6 @@
 package dev.migmags.aifilter;
 
 import java.text.Normalizer;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -43,7 +42,10 @@ public final class SlopRules {
         if (!channel.isEmpty() && blockedChannels.contains(channel)) return true;
         if (blockShorts && isShort) return true;
         String normalizedTitle = normalize(title);
-        return Arrays.stream(TITLE_PHRASES).anyMatch(phrase -> normalizedTitle.contains(phrase));
+        for (String phrase : TITLE_PHRASES) {
+            if (normalizedTitle.contains(phrase)) return true;
+        }
+        return false;
     }
 
     private static String normalize(String text) {
