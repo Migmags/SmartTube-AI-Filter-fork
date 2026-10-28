@@ -12,12 +12,15 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class VideoGroupObjectAdapter extends ObjectAdapter {
     private static final WeakHashSet<VideoGroupObjectAdapter> sAdapterRegistry = new WeakHashSet<>();
     private final List<Video> mVideoItems = new ArrayList<>();
+    private final Map<VideoGroup, Integer> mConsumedCounts = new IdentityHashMap<>();
     // CopyOnWriteArrayList to fix Fatal Exception: java.lang.ArrayIndexOutOfBoundsException: length=10; index=-1
     private final List<VideoGroup> mVideoGroups = new CopyOnWriteArrayList<>(); // keep groups from being garbage collected
     private static final SlopRules AI_FILTER = new SlopRules();
@@ -109,37 +112,27 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
         return result;
     }
 
+    private List<Video> newVisibleVideos(VideoGroup group) {
+        List<Video> source = group.getVideos();
+        int consumed = mConsumedCounts.containsKey(group) ? mConsumedCounts.get(group) : 0;
+        if (consumed > source.size()) consumed = 0;
+        mConsumedCounts.put(group, source.size());
+        return filterForDisplay(source.subList(consumed, source.size()));
+    }
+
     private void prepend(VideoGroup group) {
-        int begin = mVideoItems.size();
-
-        if (mVideoGroups.contains(group)) {
-            mVideoItems.addAll(0, filterForDisplay(group.getVideos().subList(Math.min(begin, group.getVideos().size()), group.getVideos().size())));
-        } else {
-            mVideoItems.addAll(0, filterForDisplay(group.getVideos()));
-            mVideoGroups.add(0, group);
-        }
-
-        // Fix double item blinking by specifying exact range
-        notifyItemRangeInserted(0, mVideoItems.size() - begin);
+        List<Video> incoming = newVisibleVideos(group);
+        mVideoItems.addAll(0, incoming);
+        if (!mVideoGroups.contains(group)) mVideoGroups.add(0, group);
+        if (!incoming.isEmpty()) notifyItemRangeInserted(0, incoming.size());
     }
 
     private void append(VideoGroup group) {
         int begin = mVideoItems.size();
-
-        if (mVideoGroups.contains(group)) {
-            int end = group.getVideos().size();
-            if (begin > end) {
-                mVideoItems.addAll(filterForDisplay(group.getVideos()));
-            } else {
-                mVideoItems.addAll(filterForDisplay(group.getVideos().subList(begin, end)));
-            }
-        } else {
-            mVideoItems.addAll(filterForDisplay(group.getVideos()));
-            mVideoGroups.add(group);
-        }
-
-        // Fix double item blinking by specifying exact range
-        notifyItemRangeInserted(begin, mVideoItems.size() - begin);
+        List<Video> incoming = newVisibleVideos(group);
+        mVideoItems.addAll(incoming);
+        if (!mVideoGroups.contains(group)) mVideoGroups.add(group);
+        if (!incoming.isEmpty()) notifyItemRangeInserted(begin, incoming.size());
     }
 
     /**
@@ -184,6 +177,7 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
         int itemCount = mVideoItems.size();
         mVideoItems.clear();
         mVideoGroups.clear();
+        mConsumedCounts.clear();
         if (itemCount != 0) {
             // NOTE: Crashes RecycleView IndexOutOfBoundsException when doing add immediately after clear
             notifyItemRangeRemoved(0, itemCount);
