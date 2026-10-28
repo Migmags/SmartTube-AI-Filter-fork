@@ -105,7 +105,7 @@ public class VideoGroupObjectAdapter extends ObjectAdapter {
         if (!AI_FILTER_ENABLED) return videos;
         List<Video> result = new ArrayList<>();
         for (Video video : videos) {
-            if (video != null && !AI_FILTER.shouldHide(video.getTitle(), video.getAuthor(), false)) {
+            if (video != null && !AI_FILTER.shouldHide(video.getTitle(), video.channelId, video.isShorts)) {
                 result.add(video);
             }
         }
