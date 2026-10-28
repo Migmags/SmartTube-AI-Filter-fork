@@ -40,6 +40,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: smarttube-ai-filter-prototype-unsigned-for-testing
+          name: smarttube-ai-filter-prototype-debug-apk
           path: smarttubetv/build/outputs/apk/stslop/debug/*.apk
           if-no-files-found: error
