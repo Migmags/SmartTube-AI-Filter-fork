@@ -159,6 +159,10 @@ android {
 
     // NOTE: The main goal of prefixing a flavor is to group flavors' folders together
     productFlavors {
+        stslop {
+            applicationId "dev.migmags.smarttube.aifilter"
+            versionNameSuffix "-ai-filter-prototype"
+        }
         stbeta {
             applicationId "org.smarttube.beta"
             targetSdkVersion project.properties.compileSdkVersion
